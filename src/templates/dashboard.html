@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Real-Time Parking Violations</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
         }
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100">
@@ -55,6 +55,9 @@
         const statusPing = document.getElementById('status-ping');
         const statusText = document.getElementById('status-text');
 
+        // NEW: Object to store violation data by its unique track_id
+        const violationDataStore = {};
+
         // Function to create a URL to the snapshot
         function getSnapshotUrl(relativePath) {
             // The server serves the 'output' folder.
@@ -62,6 +65,10 @@
             // We just need to make it a root-relative URL.
             return `/${relativePath}`;
         }
+
+        // Exponential backoff variables
+        let reconnectDelay = 3000; // Start with 3 seconds
+        const maxReconnectDelay = 60000; // Max 60 seconds
 
         function connect() {
             // Determine WebSocket protocol
@@ -76,12 +83,16 @@
                 statusDot.classList.add('bg-green-500');
                 statusPing.classList.remove('bg-red-400');
                 statusPing.classList.add('bg-green-400');
+                reconnectDelay = 3000; // Reset delay on successful connection
             };
 
             ws.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
                     console.log('Violation received:', data);
+
+                    // NEW: Store the full violation data object
+                    violationDataStore[data.track_id] = data;
 
                     // 1. Remove placeholder if it exists
                     if (logPlaceholder) {
@@ -99,7 +110,11 @@
 
                     // 3. Add to Violation Log (at the top)
                     const logEntry = document.createElement('div');
-                    logEntry.className = 'bg-gray-700 p-4 rounded-lg border border-gray-600 transition-all duration-300 transform scale-95 opacity-0';
+                    // MODIFIED: Added cursor-pointer for UI feedback and hover effect
+                    logEntry.className = 'bg-gray-700 p-4 rounded-lg border border-gray-600 transition-all duration-300 transform scale-95 opacity-0 cursor-pointer hover:bg-gray-600';
+                    // NEW: Add a data attribute to identify the log entry
+                    logEntry.dataset.trackId = data.track_id;
+                    
                     logEntry.innerHTML = `
                         <p class="font-semibold text-red-400">New Violation: ID ${data.track_id}</p>
                         <p class="text-sm text-gray-300">Zone: <span class="font-medium text-white">${data.zone_name}</span></p>
@@ -119,14 +134,15 @@
             };
 
             ws.onclose = (e) => {
-                console.log('WebSocket disconnected. Reconnecting in 3s...', e.reason);
+                console.log(`WebSocket disconnected. Reconnecting in ${reconnectDelay / 1000}s...`, e.reason);
                 statusText.textContent = 'Disconnected';
                 statusDot.classList.add('bg-red-500');
                 statusDot.classList.remove('bg-green-500');
                 statusPing.classList.add('bg-red-400');
                 statusPing.classList.remove('bg-green-400');
                 
-                setTimeout(connect, 3000); // Attempt to reconnect
+                setTimeout(connect, reconnectDelay); // Attempt to reconnect
+                reconnectDelay = Math.min(reconnectDelay * 2, maxReconnectDelay); // Exponential backoff
             };
 
             ws.onerror = (err) => {
@@ -137,6 +153,27 @@
 
         // Initial connection
         connect();
+
+        // NEW: Add a single event listener to the parent log container
+        violationsLog.addEventListener('click', (event) => {
+            // Find the log entry that was clicked on
+            const logEntry = event.target.closest('[data-track-id]');
+            
+            if (logEntry) {
+                const trackId = logEntry.dataset.trackId;
+                const violationData = violationDataStore[trackId];
+
+                if (violationData) {
+                    // Update the snapshot container with the clicked violation's image
+                    const imageUrl = `${getSnapshotUrl(violationData.snapshot_file)}?t=${new Date().getTime()}`;
+                    snapshotContainer.innerHTML = `
+                        <img src="${imageUrl}" 
+                             alt="Violation snapshot for ID ${violationData.track_id}" 
+                             class="rounded-lg max-w-full h-auto shadow-md">
+                    `;
+                }
+            }
+        });
     </script>
 </body>
 </html>
