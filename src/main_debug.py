@@ -18,8 +18,8 @@ from capture.stream_handler import get_video_capture
 
 # --- Configuration ---
 ZONES_FILE = 'config/zones.json'
-MODEL_PATH = 'models/yolo11m.pt'
-FIXED_VIDEO_SOURCE = "input\\Fast 1080p30-20251022 134935.mp4"
+MODEL_PATH = 'models/yolo11s.pt'
+FIXED_VIDEO_SOURCE = "https://192.168.1.15:8080/video"
 CONF_THRESHOLD = 0.3
 IOU_THRESHOLD = 0.5
 VIOLATION_THRESHOLD_SECONDS = 10
@@ -29,7 +29,7 @@ DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 DASHBOARD_URL = "http://localhost:8080/violation"
 
 ### --- ADDED FOR DEBUG DISPLAY --- ###
-DISPLAY_WIDTH = 1280 # Width for the debug window display
+DISPLAY_WIDTH = 640 # Width for the debug window display
 
 # --- Setup ---
 os.makedirs(SNAPSHOT_DIR, exist_ok=True)
@@ -174,8 +174,12 @@ def run_violation_detection():
     
     print(f"\n🚀 Starting real-time detection on {DEVICE.upper()}... Press 'q' in the window to quit.")
     
+    # --- FPS & Session Tracking ---
     frame_count = 0
     start_time = time.time()
+    fps = 0.0
+    total_frames_processed = 0
+    session_start_time = time.time()
 
     try:
         while True:
@@ -185,6 +189,7 @@ def run_violation_detection():
                 continue
             
             frame_count += 1
+            total_frames_processed += 1
 
             # 7. Run Model Tracking
             results = model.track(frame, persist=True, verbose=False, device=DEVICE, 
@@ -258,9 +263,9 @@ def run_violation_detection():
                         idle_timers[track_id] = 0
 
                     # Draw bounding box and ID on the frame
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2) # [cite: raftoxx2nd/cdp-parking-violation/CDP-Parking-Violation-80add89edd0f763d4e0f95f31ba8742671a67dc8/main.py]
-                    text = f"ID: {int(track_id)} ({conf:.2f})" # [cite: raftoxx2nd/cdp-parking-violation/CDP-Parking-Violation-80add89edd0f763d4e0f95f31ba8742671a67dc8/main.py]
-                    cv2.putText(frame, text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2) # [cite: raftoxx2nd/cdp-parking-violation/CDP-Parking-Violation-80add89edd0f763d4e0f95f31ba8742671a67dc8/main.py]
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2) 
+                    text = f"ID: {int(track_id)} ({conf:.2f})"
+                    cv2.putText(frame, text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
 
                 # Prune timers for tracks that have left the scene
                 for track_id in list(idle_timers.keys()):
@@ -272,43 +277,54 @@ def run_violation_detection():
 
             # Draw the defined zones on the frame
             for name, poly in scaled_zones.items():
-                cv2.polylines(frame, [poly], isClosed=True, color=(255, 255, 0), thickness=2) # [cite: raftoxx2nd/cdp-parking-violation/CDP-Parking-Violation-80add89edd0f763d4e0f95f31ba8742671a67dc8/main.py]
+                cv2.polylines(frame, [poly], isClosed=True, color=(255, 255, 0), thickness=2) 
+
+            # Calculate FPS
+            end_time = time.time()
+            elapsed = end_time - start_time
+            if elapsed >= 1.0:
+                fps = frame_count / elapsed
+                frame_count = 0
+                start_time = time.time()
+                violation_threshold_frames = int(VIOLATION_THRESHOLD_SECONDS * fps)
+
+            # Add FPS text to the frame
+            fps_text = f"FPS: {fps:.2f} ({DEVICE.upper()})"
+            cv2.putText(frame, fps_text, (15, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 3)
 
             # 7. Display Live View
             # Resize frame for display
             scale = DISPLAY_WIDTH / frame.shape[1]
             display_frame = cv2.resize(frame, (DISPLAY_WIDTH, int(frame.shape[0] * scale)))
-            cv2.imshow('Real-time Parking Violation Detection', display_frame) # [cite: raftoxx2nd/cdp-parking-violation/CDP-Parking-Violation-80add89edd0f763d4e0f95f31ba8742671a67dc8/main.py]
+            cv2.imshow('Real-time Parking Violation Detection', display_frame) 
 
             # Check for 'q' key to quit
-            if cv2.waitKey(1) & 0xFF == ord('q'): # [cite: raftoxx2nd/cdp-parking-violation/CDP-Parking-Violation-80add89edd0f763d4e0f95f31ba8742671a67dc8/main.py]
+            if cv2.waitKey(1) & 0xFF == ord('q'): 
                 print("'q' pressed. Stopping detection...")
                 break
-
-            # Calculate and print FPS
-            end_time = time.time()
-            elapsed = end_time - start_time
-            if elapsed >= 1.0:
-                fps = frame_count / elapsed
-                print(f"FPS: {fps:.2f} (Processing on {DEVICE})")
-                frame_count = 0
-                start_time = time.time()
-                violation_threshold_frames = int(VIOLATION_THRESHOLD_SECONDS * fps)
-
 
     except KeyboardInterrupt:
         print("\nStopping detection (Ctrl+C)...")
     finally:
         # 8. Cleanup
+        session_end_time = time.time()
         stream.stop()
         
         cv2.destroyAllWindows() 
         
+        # --- Calculate Session Statistics ---
+        total_elapsed_time = session_end_time - session_start_time
+        average_fps = 0
+        if total_elapsed_time > 0:
+            average_fps = total_frames_processed / total_elapsed_time
+
         print("\n--- Session Summary ---")
         if violation_history:
             print(f"Total unique violations recorded: {len(violation_history)}")
         else:
             print("No violations were recorded.")
+        
+        print(f"Average FPS: {average_fps:.2f}")
         print("-----------------------")
 
 
