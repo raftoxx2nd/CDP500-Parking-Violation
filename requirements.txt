@@ -1,0 +1,8 @@
+ultralytics
+#opencv-python-headless #for server environment without GUI
+opencv-python #if  need local display for debugging.
+numpy
+matplotlib
+aiohttp
+requests
+torch

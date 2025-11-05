@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Parking Violations</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-white">Parking Violation Dashboard</h1>
+            <div class="flex items-center space-x-2">
+                <span class="relative flex h-3 w-3">
+                    <span id="status-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span id="status-dot" class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                </span>
+                <span id="status-text" class="text-red-400">Connecting...</span>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Column 1: Latest Violation Snapshot -->
+            <div class="lg:col-span-2 bg-gray-800 p-6 rounded-lg shadow-xl">
+                <h2 class="text-xl font-semibold mb-4 text-white">Latest Violation</h2>
+                <div id="snapshot-container" class="bg-gray-700 rounded-lg min-h-[480px] flex items-center justify-center border-2 border-gray-600">
+                    <p class="text-gray-400">Waiting for first violation...</p>
+                </div>
+            </div>
+
+            <!-- Column 2: Violation Log -->
+            <div class="lg:col-span-1 bg-gray-800 p-6 rounded-lg shadow-xl max-h-[720px] overflow-y-auto">
+                <h2 class="text-xl font-semibold mb-4 text-white">Violation Log</h2>
+                <div id="violations-log" class="space-y-4">
+                    <p id="log-placeholder" class="text-gray-400">No violations recorded yet.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const violationsLog = document.getElementById('violations-log');
+        const snapshotContainer = document.getElementById('snapshot-container');
+        const logPlaceholder = document.getElementById('log-placeholder');
+        
+        const statusDot = document.getElementById('status-dot');
+        const statusPing = document.getElementById('status-ping');
+        const statusText = document.getElementById('status-text');
+
+        // Function to create a URL to the snapshot
+        function getSnapshotUrl(relativePath) {
+            // The server serves the 'output' folder.
+            // The relativePath is like 'output/snapshots/violation_...jpg'
+            // We just need to make it a root-relative URL.
+            return `/${relativePath}`;
+        }
+
+        function connect() {
+            // Determine WebSocket protocol
+            const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+            const wsHost = window.location.host; // e.g., localhost:8080
+            const ws = new WebSocket(`${wsProtocol}//${wsHost}/ws`);
+
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+                statusText.textContent = 'Connected';
+                statusDot.classList.remove('bg-red-500');
+                statusDot.classList.add('bg-green-500');
+                statusPing.classList.remove('bg-red-400');
+                statusPing.classList.add('bg-green-400');
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('Violation received:', data);
+
+                    // 1. Remove placeholder if it exists
+                    if (logPlaceholder) {
+                        logPlaceholder.remove();
+                    }
+
+                    // 2. Update Snapshot
+                    // Add a cache-buster query string to force image reload
+                    const imageUrl = `${getSnapshotUrl(data.snapshot_file)}?t=${new Date().getTime()}`;
+                    snapshotContainer.innerHTML = `
+                        <img src="${imageUrl}" 
+                             alt="Violation snapshot for ID ${data.track_id}" 
+                             class="rounded-lg max-w-full h-auto shadow-md">
+                    `;
+
+                    // 3. Add to Violation Log (at the top)
+                    const logEntry = document.createElement('div');
+                    logEntry.className = 'bg-gray-700 p-4 rounded-lg border border-gray-600 transition-all duration-300 transform scale-95 opacity-0';
+                    logEntry.innerHTML = `
+                        <p class="font-semibold text-red-400">New Violation: ID ${data.track_id}</p>
+                        <p class="text-sm text-gray-300">Zone: <span class="font-medium text-white">${data.zone_name}</span></p>
+                        <p class="text-sm text-gray-300">Class: <span class="font-medium text-white">${data.class_label}</span></p>
+                        <p class="text-sm text-gray-300">Time: <span class="font-medium text-white">${data.timestamp}</span></p>
+                    `;
+                    violationsLog.prepend(logEntry);
+                    
+                    // Trigger animation
+                    setTimeout(() => {
+                        logEntry.classList.remove('scale-95', 'opacity-0');
+                    }, 10);
+
+                } catch (e) {
+                    console.error('Failed to parse message:', event.data, e);
+                }
+            };
+
+            ws.onclose = (e) => {
+                console.log('WebSocket disconnected. Reconnecting in 3s...', e.reason);
+                statusText.textContent = 'Disconnected';
+                statusDot.classList.add('bg-red-500');
+                statusDot.classList.remove('bg-green-500');
+                statusPing.classList.add('bg-red-400');
+                statusPing.classList.remove('bg-green-400');
+                
+                setTimeout(connect, 3000); // Attempt to reconnect
+            };
+
+            ws.onerror = (err) => {
+                console.error('WebSocket error:', err);
+                ws.close();
+            };
+        }
+
+        // Initial connection
+        connect();
+    </script>
+</body>
+</html>
