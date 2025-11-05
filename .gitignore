@@ -27,8 +27,6 @@ output/*
 
 # Generated configuration - ignore contents but keep folder
 config/*
-!config/.gitkeep
-!config/zones.json
 
 # Input data (ignore video files, but keep folder structure)
 input/*
@@ -36,6 +34,7 @@ input/*
 
 # Large model files (ignore .pt files specifically)
 models/*.pt
+models/*.onnx
 !models/.gitkeep
 
 # Unused scripts
@@ -44,3 +43,5 @@ unused/*
 
 # Log files
 *.log
+
+
