@@ -1,23 +1,23 @@
 {
-    "source_image_width": 1920,
-    "source_image_height": 1080,
+    "source_image_width": 640,
+    "source_image_height": 480,
     "zones": {
-        "car-only": [
+        "zone1": [
             [
-                21,
-                567
+                1,
+                259
             ],
             [
-                31,
-                418
+                4,
+                184
             ],
             [
-                1891,
-                712
+                635,
+                296
             ],
             [
-                1853,
-                968
+                627,
+                392
             ]
         ]
     }
