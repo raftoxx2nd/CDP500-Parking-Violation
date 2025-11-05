@@ -19,7 +19,7 @@ except ImportError:
 # --- Configuration ---
 ZONES_OUTPUT_FILE = 'config/zones.json'
 # Set your fixed video source here, or set to None to be prompted
-FIXED_VIDEO_SOURCE = "input\Fast 1080p30-20251022 134935.mp4" 
+FIXED_VIDEO_SOURCE = "https://192.168.1.15:8080/video" 
 
 def define_polygons_interactive(frame_bgr):
     """
