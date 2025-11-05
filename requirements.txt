@@ -6,3 +6,4 @@ matplotlib
 aiohttp
 requests
 torch
+onnxruntime
