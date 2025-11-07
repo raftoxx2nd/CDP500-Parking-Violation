@@ -19,7 +19,7 @@ except ImportError:
 # --- Configuration ---
 ZONES_OUTPUT_FILE = 'config/zones.json'
 # Set your fixed video source here, or set to None to be prompted
-FIXED_VIDEO_SOURCE = "https://192.168.1.15:8080/video" 
+FIXED_VIDEO_SOURCE = "input\Very Fast 720p30-20251104 155119.mp4" 
 
 def define_polygons_interactive(frame_bgr):
     """
@@ -79,12 +79,8 @@ class PolygonBuilder:
                 self.reset_current_poly()
                 return
 
-            # Get a user-defined name for the zone
-            zone_name = input(f"Enter name for zone {self.zone_idx} (e.g., 'car-only-1'): ")
-            if not zone_name:
-                zone_name = f'zone_{self.zone_idx}'
-
-            key = zone_name
+            # Automatically name the zone
+            key = f'zone_{self.zone_idx}'
             poly = np.array(self.current_poly_pts, dtype=np.int32)
             self.zones[key] = poly
             self.zone_idx += 1
