@@ -16,9 +16,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from capture.stream_handler import get_video_capture
 
 # --- Configuration ---
+SETTINGS_FILE = 'config/settings.json'
 ZONES_FILE = 'config/zones.json'
 MODEL_PATH = 'models/yolo11m.pt'
-FIXED_VIDEO_SOURCE = "https://192.168.1.15:8080/video"
 CONF_THRESHOLD = 0.3
 IOU_THRESHOLD = 0.5
 VIOLATION_THRESHOLD_SECONDS = 10
@@ -113,6 +113,13 @@ class VideoStream:
 
 # --- Utility Functions ---
 
+def load_settings(filepath=SETTINGS_FILE):
+    """Loads settings from the specified JSON file."""
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(f"Settings file not found: '{filepath}'.")
+    with open(filepath, 'r') as f:
+        return json.load(f)
+
 def load_zones(filepath=ZONES_FILE):
     """Loads zone data from the specified JSON file."""
     if not os.path.exists(filepath):
@@ -156,32 +163,38 @@ def send_to_dashboard(log_data):
 def run_violation_detection():
     """Main loop for optimized real-time parking violation detection."""
     
-    # 1. Load Zones
+    # 1. Load Settings
+    try:
+        settings = load_settings()
+        video_source = settings.get('video_source')
+        if not video_source:
+            print("❌ Error: 'video_source' not found in settings.json")
+            return
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"❌ Error loading settings: {e}"); return
+
+    # 2. Load Zones
     try:
         original_zones, src_w, src_h = load_zones()
     except FileNotFoundError as e:
         print(f"❌ Error: {e}"); return
 
-    # 2. Initialize YOLO Model
+    # 3. Initialize YOLO Model
     try:
         model = YOLO(MODEL_PATH)
         model.to(DEVICE)
     except Exception as e:
         print(f"❌ Error loading YOLO model: {e}"); return
 
-    # 3. Setup Threaded Video Capture
-    video_source = FIXED_VIDEO_SOURCE
-    if video_source is None:
-        video_source = input("Enter video source: ")
-    
+    # 4. Setup Threaded Video Capture
     try:
         stream = VideoStream(video_source)
     except IOError as e:
         print(f"❌ Error: {e}"); return
 
-    # 4. Get first frame for scaling
+    # 5. Get first frame for scaling
     print("Waiting for first frame from stream...")
-    time.sleep(2.0)
+    time.sleep(2.0) # Give stream time to populate
     first_frame = stream.read()
     if first_frame is None:
         print("❌ Error: Could not get first frame from stream.")
@@ -192,12 +205,12 @@ def run_violation_detection():
     # Determine FPS baseline for stats display
     target_fps = stream.source_fps if getattr(stream, "source_fps", 0) else 30.0
     
-    # 5. Scale Zones
+    # 6. Scale Zones
     sx = frame_w / src_w
     sy = frame_h / src_h
     scaled_zones = scale_zones(original_zones, sx, sy)
 
-    # 6. Initialize Tracking State
+    # 7. Initialize Tracking State
     zone_timers = {}
     violation_history = {}
     
@@ -210,6 +223,7 @@ def run_violation_detection():
     total_frames_processed = 0
     session_start_time = time.time()
 
+    # Main detection loop
     try:
         while True:
             frame = stream.read()
