@@ -4,7 +4,6 @@ from ultralytics import YOLO
 import json
 import time
 import os
-from collections import defaultdict
 import torch
 import sys
 import threading
@@ -18,18 +17,19 @@ from capture.stream_handler import get_video_capture
 
 # --- Configuration ---
 ZONES_FILE = 'config/zones.json'
-MODEL_PATH = 'models/yolo11s.pt'
+MODEL_PATH = 'models/yolo11m.pt'
 FIXED_VIDEO_SOURCE = "https://192.168.1.15:8080/video"
 CONF_THRESHOLD = 0.3
 IOU_THRESHOLD = 0.5
 VIOLATION_THRESHOLD_SECONDS = 10
+TRACK_GRACE_PERIOD_SECONDS = 3  # How long to wait before considering a track lost
 SNAPSHOT_DIR = 'output/snapshots'
 LOG_DIR = 'output/logs'
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 DASHBOARD_URL = "http://localhost:8080/violation"
 
 ### --- ADDED FOR DEBUG DISPLAY --- ###
-DISPLAY_WIDTH = 640 # Width for the debug window display
+DISPLAY_WIDTH = 1280 # Width for the debug window display
 
 # --- Setup ---
 os.makedirs(SNAPSHOT_DIR, exist_ok=True)
@@ -39,24 +39,48 @@ os.makedirs(LOG_DIR, exist_ok=True)
 class VideoStream:
     """A threaded video stream reader to prevent I/O blocking."""
     def __init__(self, src=0):
+        self.source = src
         self.cap = get_video_capture(src)
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1) # Keep buffer small
+        self.is_file_source = isinstance(src, str) and os.path.exists(src)
+        self.source_fps = self._determine_source_fps()
+        if self.is_file_source and self.source_fps:
+            self.frame_interval = 1.0 / self.source_fps
+        else:
+            self.frame_interval = None
         
         self.queue = queue.Queue(maxsize=1)
         self.running = True
         self.thread = threading.Thread(target=self._run, daemon=True)
         self.thread.start()
 
+    def _determine_source_fps(self):
+        """Fetch FPS from the capture object, with sane fallbacks."""
+        fps = self.cap.get(cv2.CAP_PROP_FPS)
+        if fps and fps > 1:
+            return fps
+        if self.is_file_source:
+            # Default to 30 FPS playback for files when metadata is missing.
+            return 30.0
+        return 0.0
+
     def _run(self):
         """Internal thread target function."""
         print("Video stream thread started...")
         while self.running:
+            iteration_start = time.time()
             ret, frame = self.cap.read()
             if not ret:
                 print("Stream thread: No frame returned, retrying...")
                 self.cap.release()
                 time.sleep(1)
-                self.cap = get_video_capture(FIXED_VIDEO_SOURCE) # Reconnect
+                self.cap = get_video_capture(self.source) # Reconnect
+                self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                self.source_fps = self._determine_source_fps()
+                if self.is_file_source and self.source_fps:
+                    self.frame_interval = 1.0 / self.source_fps
+                else:
+                    self.frame_interval = None
                 continue
 
             if not self.queue.empty():
@@ -65,6 +89,12 @@ class VideoStream:
                 except queue.Empty:
                     pass
             self.queue.put(frame)
+
+            if self.frame_interval:
+                elapsed = time.time() - iteration_start
+                sleep_time = self.frame_interval - elapsed
+                if sleep_time > 0:
+                    time.sleep(sleep_time)
     
     def read(self):
         """Read the latest frame from the queue."""
@@ -158,10 +188,9 @@ def run_violation_detection():
         stream.stop(); return
         
     frame_h, frame_w = first_frame.shape[:2]
-    
-    # Get FPS
-    fps = 30
-    violation_threshold_frames = int(VIOLATION_THRESHOLD_SECONDS * fps)
+
+    # Determine FPS baseline for stats display
+    target_fps = stream.source_fps if getattr(stream, "source_fps", 0) else 30.0
     
     # 5. Scale Zones
     sx = frame_w / src_w
@@ -169,15 +198,15 @@ def run_violation_detection():
     scaled_zones = scale_zones(original_zones, sx, sy)
 
     # 6. Initialize Tracking State
-    idle_timers = defaultdict(int)
+    zone_timers = {}
     violation_history = {}
     
-    print(f"\n🚀 Starting real-time detection on {DEVICE.upper()}... Press 'q' in the window to quit.")
+    print(f"\n Starting real-time detection on {DEVICE.upper()}... Press 'q' in the window to quit.")
     
     # --- FPS & Session Tracking ---
     frame_count = 0
     start_time = time.time()
-    fps = 0.0
+    processing_fps = target_fps if target_fps else 0.0
     total_frames_processed = 0
     session_start_time = time.time()
 
@@ -192,8 +221,9 @@ def run_violation_detection():
             total_frames_processed += 1
 
             # 7. Run Model Tracking
-            results = model.track(frame, persist=True, verbose=False, device=DEVICE, 
-                                  conf=CONF_THRESHOLD, iou=IOU_THRESHOLD, classes=[2, 3])[0] # car, motorcycle
+            results = model.track(frame, persist=True, tracker="bytetrack.yaml", verbose=False, 
+                                  device=DEVICE, conf=CONF_THRESHOLD, iou=IOU_THRESHOLD, 
+                                  classes=[2, 3])[0] # car, motorcycle
 
             if results.boxes.id is not None:
                 boxes = results.boxes.xyxy.cpu().numpy()
@@ -202,6 +232,7 @@ def run_violation_detection():
                 confs = results.boxes.conf.cpu().tolist()
                 
                 current_frame_track_ids = set(track_ids)
+                frame_time = time.time()
 
                 for box, track_id, cls_id, conf in zip(boxes, track_ids, clss, confs):
                     x1, y1, x2, y2 = map(int, box)
@@ -214,13 +245,23 @@ def run_violation_detection():
 
                     # Violation condition: specific classes in any zone
                     if is_in_zone and label in ['motorcycle']:
-                        idle_timers[track_id] += 1
-                        
+                        if track_id not in zone_timers:
+                            # Vehicle just entered the zone
+                            zone_timers[track_id] = {
+                                "enter_time": frame_time,
+                                "last_seen": frame_time,
+                            }
+                            elapsed_in_zone = 0
+                        else:
+                            # Vehicle is still in the zone
+                            timer_state = zone_timers[track_id]
+                            elapsed_in_zone = frame_time - timer_state["enter_time"]
+                            timer_state["last_seen"] = frame_time
+
                         # Yellow for potential violation
                         color = (0, 255, 255) 
 
-                        if idle_timers[track_id] >= violation_threshold_frames:
-                            
+                        if elapsed_in_zone >= VIOLATION_THRESHOLD_SECONDS:
                             # Red for confirmed violation
                             color = (0, 0, 255) 
 
@@ -229,7 +270,8 @@ def run_violation_detection():
                                 
                                 # --- Create Snapshot ---
                                 snapshot_frame = frame.copy() 
-                                cv2.polylines(snapshot_frame, [scaled_zones[zone_name]], isClosed=True, color=(0, 0, 255), thickness=2) # [cite: raftoxx2nd/cdp-parking-violation/CDP-Parking-Violation-80add89edd0f763d4e0f95f31ba8742671a67dc8/main.py]
+                                # Draw the violation zone polygon in red on the snapshot frame
+                                cv2.polylines(snapshot_frame, [scaled_zones[zone_name]], isClosed=True, color=(0, 0, 255), thickness=2)
                                 cv2.rectangle(snapshot_frame, (x1, y1), (x2, y2), (0, 0, 255), 2) 
                                 text = f"ID: {int(track_id)} ({conf:.2f})" 
                                 cv2.putText(snapshot_frame, text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2) # [cite: raftoxx2nd/cdp-parking-violation/CDP-Parking-Violation-80add89edd0f763d4e0f95f31ba8742671a67dc8/main.py]
@@ -257,23 +299,25 @@ def run_violation_detection():
                                 print(f"🔴 VIOLATION: Vehicle ID {int(track_id)} in '{zone_name}'.")
                                 
                                 # Send to dashboard
-                                send_to_dashboard(log_data)
+                                threading.Thread(target=send_to_dashboard, args=(log_data,), daemon=True).start()
                     else:
                         # Reset timer if vehicle leaves the zone
-                        idle_timers[track_id] = 0
+                        zone_timers.pop(track_id, None)
 
                     # Draw bounding box and ID on the frame
                     cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2) 
                     text = f"ID: {int(track_id)} ({conf:.2f})"
                     cv2.putText(frame, text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
 
-                # Prune timers for tracks that have left the scene
-                for track_id in list(idle_timers.keys()):
-                    if track_id not in current_frame_track_ids:
-                        idle_timers.pop(track_id)
-                        if track_id in violation_history:
-                            violation_history.pop(track_id)
-                            print(f"Vehicle ID {track_id} left the scene. Reset.")
+                # Prune timers for tracks that have been gone for the grace period
+                current_time = time.time()
+                for track_id in list(zone_timers.keys()):
+                    # A track is considered "gone" if it hasn't been seen in the grace period
+                    if current_time - zone_timers[track_id]["last_seen"] > TRACK_GRACE_PERIOD_SECONDS:
+                        print(f"Vehicle ID {track_id} left the scene. Reset.")
+                        # Use .pop(track_id, None) for safe removal
+                        zone_timers.pop(track_id, None)
+                        violation_history.pop(track_id, None)
 
             # Draw the defined zones on the frame
             for name, poly in scaled_zones.items():
@@ -283,19 +327,18 @@ def run_violation_detection():
             end_time = time.time()
             elapsed = end_time - start_time
             if elapsed >= 1.0:
-                fps = frame_count / elapsed
+                processing_fps = frame_count / elapsed
                 frame_count = 0
                 start_time = time.time()
-                violation_threshold_frames = int(VIOLATION_THRESHOLD_SECONDS * fps)
 
             # Add FPS text to the frame
-            fps_text = f"FPS: {fps:.2f} ({DEVICE.upper()})"
+            fps_text = f"FPS: {processing_fps:.2f} ({DEVICE.upper()})"
             cv2.putText(frame, fps_text, (15, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 3)
 
             # 7. Display Live View
-            # Resize frame for display
-            scale = DISPLAY_WIDTH / frame.shape[1]
-            display_frame = cv2.resize(frame, (DISPLAY_WIDTH, int(frame.shape[0] * scale)))
+            aspect_ratio = frame.shape[0] / frame.shape[1]
+            display_height = int(DISPLAY_WIDTH * aspect_ratio)
+            display_frame = cv2.resize(frame, (DISPLAY_WIDTH, display_height))
             cv2.imshow('Real-time Parking Violation Detection', display_frame) 
 
             # Check for 'q' key to quit
