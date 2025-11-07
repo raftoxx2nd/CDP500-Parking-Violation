@@ -26,7 +26,6 @@ output/*
 !output/.gitkeep
 
 # Generated configuration - ignore contents but keep folder
-config/*
 config/zones.json
 
 # Input data (ignore video files, but keep folder structure)

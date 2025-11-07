@@ -7,3 +7,5 @@ aiohttp
 requests
 torch
 onnxruntime
+
+# Add specific versions if needed, e.g.:python=3.12
