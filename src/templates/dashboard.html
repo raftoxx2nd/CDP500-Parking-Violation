@@ -35,6 +35,13 @@
                 <button id="start-detection-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors hidden">Mulai Deteksi</button>
                 <button id="stop-detection-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors hidden">Stop Deteksi</button>
 
+                <button id="enable-notifications-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M10 2a6 6 0 00-6 6v3.586l-1.707 1.707A1 1 0 003 14h14a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+                    </svg>
+                    <span>Enable Alerts</span>
+                </button>
+
                 <button id="settings-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center space-x-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0L8.12 5.02A6.996 6.996 0 004.98 8.12l-1.85.39c-1.56.38-1.56 2.6 0 2.98l1.85.39A6.996 6.996 0 008.12 15.02l.39 1.85c.38 1.56 2.6 1.56 2.98 0l.39-1.85a6.996 6.996 0 003.14-3.14l1.85-.39c1.56-.38 1.56-2.6 0-2.98l-1.85-.39a6.996 6.996 0 00-3.14-3.14l-.39-1.85zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
@@ -64,6 +71,9 @@
         </div>
     </div>
 
+    <!-- NEW: Audio element for alert sound -->
+    <audio id="alert-sound" src="/static/audio/alert.mp3" preload="auto"></audio>
+
     <!-- Settings Modal -->
     <div id="settings-modal" class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50">
         <div class="bg-gray-800 rounded-lg shadow-2xl w-full max-w-4xl h-full max-h-[90vh] flex flex-col">
@@ -88,6 +98,20 @@
                         <input type="text" id="video-source-input" class="flex-grow p-2 bg-gray-900 border border-gray-600 rounded-lg" placeholder="e.g., input/video.mp4 or rtsp://...">
                         <span id="unsaved-indicator" class="hidden text-yellow-400 text-sm font-semibold">Unsaved</span>
                     </div>
+                    
+                    <!-- File Browser Dropdown -->
+                    <div class="mt-4 p-4 bg-gray-900 rounded-lg border border-gray-700">
+                        <label for="file-browser-dropdown" class="block mb-2 text-sm font-medium text-gray-300">Quick Select from Input Folder:</label>
+                        <select id="file-browser-dropdown" class="w-full p-2 bg-gray-800 border border-gray-600 rounded-lg text-gray-300 hover:border-gray-500">
+                            <option value="">-- Load video files --</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Manual Input Help -->
+                    <div class="mt-4 p-3 bg-blue-900/30 border border-blue-700 rounded-lg">
+                        <p class="text-xs text-gray-300">💡 <strong>Tip:</strong> You can also type a full path (e.g., <code class="bg-gray-800 px-1 rounded">E:\Videos\parking.mp4</code>) or RTSP URL directly above.</p>
+                    </div>
+                    
                     <button id="save-settings-btn" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Apply Source & Update Editor</button>
                     <p id="settings-feedback" class="mt-2 text-sm text-green-400"></p>
                 </div>
@@ -126,6 +150,10 @@
         const startDetectionBtn = document.getElementById('start-detection-btn');
         const stopDetectionBtn = document.getElementById('stop-detection-btn');
 
+        // --- Alert & Notification Selectors ---
+        const alertSound = document.getElementById('alert-sound');
+        const enableNotificationsBtn = document.getElementById('enable-notifications-btn');
+
         // --- New Settings Modal Selectors ---
         const settingsBtn = document.getElementById('settings-btn');
         const settingsModal = document.getElementById('settings-modal');
@@ -138,6 +166,7 @@
         const saveSettingsBtn = document.getElementById('save-settings-btn');
         const settingsFeedback = document.getElementById('settings-feedback');
         const unsavedIndicator = document.getElementById('unsaved-indicator');
+        const fileBrowserDropdown = document.getElementById('file-browser-dropdown');
 
         // Zone Editor Tab
         const roiBgImage = document.getElementById('roi-bg-image');
@@ -155,6 +184,47 @@
         let currentPoints = [];
         let sourceImageSize = { w: 0, h: 0 };
         let hasUnsavedChanges = false;
+        let canPlaySound = true; // Cooldown flag for alert sound
+
+        // --- Alert & Notification Logic ---
+        function requestNotificationPermission() {
+            if (!("Notification" in window)) {
+                alert("This browser does not support desktop notification");
+                return;
+            }
+
+            if (Notification.permission === "granted") {
+                // Notifications are already enabled
+                new Notification("Alerts Enabled!", { body: "You will now receive push notifications for new violations." });
+            } else if (Notification.permission !== "denied") {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") {
+                        new Notification("Alerts Enabled!", { body: "You will now receive push notifications for new violations." });
+                    }
+                });
+            }
+        }
+
+        function triggerAlert(violationData) {
+            // 1. Play sound with cooldown
+            if (canPlaySound) {
+                alertSound.play().catch(e => console.error("Audio play failed. User interaction might be required first.", e));
+                canPlaySound = false;
+                // Set a 30-second cooldown
+                setTimeout(() => { canPlaySound = true; }, 30000);
+            }
+
+            // 2. Send push notification if permission is granted and tab is not active
+            if (Notification.permission === "granted" && document.hidden) {
+                const notificationBody = `Vehicle ID ${violationData.track_id} detected in zone '${violationData.zone_name}'.`;
+                new Notification("Parking Violation Detected!", {
+                    body: notificationBody,
+                    icon: "/static/icon.png" // Optional: path to your icon
+                });
+            }
+        }
+
+        enableNotificationsBtn.addEventListener('click', requestNotificationPermission);
 
         // --- Detector Control Logic ---
         function updateDetectorStatusUI(status) {
@@ -234,6 +304,9 @@
                     violationDataStore[data.track_id] = data;
                     if (logPlaceholder) logPlaceholder.remove();
                     
+                    // --- MODIFIED: Trigger alert on new violation ---
+                    triggerAlert(data);
+
                     const imageUrl = `${getSnapshotUrl(data.snapshot_file)}?t=${new Date().getTime()}`;
                     snapshotContainer.innerHTML = `<img src="${imageUrl}" alt="Violation snapshot for ID ${data.track_id}" class="rounded-lg max-w-full h-auto shadow-md">`;
 
@@ -300,6 +373,7 @@
         settingsBtn.addEventListener('click', () => {
             openModal();
             loadCurrentSettings();
+            loadInputFiles();
             loadZoneEditor();
         });
         closeModalBtn.addEventListener('click', closeModal);
@@ -329,6 +403,43 @@
         videoSourceInput.addEventListener('input', () => {
             hasUnsavedChanges = true;
             updateUnsavedIndicator();
+        });
+
+        // --- File Browser Dropdown Logic ---
+        async function loadInputFiles() {
+            try {
+                const response = await fetch('/api/input-files');
+                const data = await response.json();
+                
+                fileBrowserDropdown.innerHTML = '<option value="">-- Select a video --</option>';
+                if (data.files && data.files.length > 0) {
+                    data.files.forEach(file => {
+                        const option = document.createElement('option');
+                        option.value = `input/${file}`;
+                        option.textContent = file;
+                        fileBrowserDropdown.appendChild(option);
+                    });
+                } else {
+                    const option = document.createElement('option');
+                    option.textContent = 'No video files found in input/ directory';
+                    option.disabled = true;
+                    fileBrowserDropdown.appendChild(option);
+                }
+            } catch (e) {
+                console.error("Failed to load input files:", e);
+                fileBrowserDropdown.innerHTML = '<option value="">-- Error loading files --</option>';
+            }
+        }
+
+        // When dropdown selection changes, populate the input field
+        fileBrowserDropdown.addEventListener('change', (e) => {
+            if (e.target.value) {
+                videoSourceInput.value = e.target.value;
+                hasUnsavedChanges = true;
+                updateUnsavedIndicator();
+                settingsFeedback.textContent = `✓ Selected: ${e.target.options[e.target.selectedIndex].text}. Click "Apply Source & Update Editor" to apply.`;
+                setTimeout(() => settingsFeedback.textContent = '', 3000);
+            }
         });
 
         function updateUnsavedIndicator() {

@@ -6,6 +6,7 @@ import weakref
 import subprocess
 import sys
 import time
+import webbrowser # Optional: for auto-opening browser
 
 # Add project root to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -220,6 +221,24 @@ async def save_zones_handler(request):
     except Exception as e:
         return web.json_response({"error": f"Failed to save zones: {e}"}, status=500)
 
+async def list_input_files_handler(request):
+    """Lists all video files in the input directory."""
+    try:
+        input_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'input'))
+        if not os.path.exists(input_dir):
+            os.makedirs(input_dir)
+            return web.json_response({"files": []})
+        
+        # List all video files
+        video_extensions = ('.mp4', '.avi', '.mov', '.mkv', '.flv', '.wmv', '.webm')
+        files = [f for f in os.listdir(input_dir) if f.lower().endswith(video_extensions)]
+        files.sort()
+        
+        return web.json_response({"files": files})
+    except Exception as e:
+        print(f"Error listing input files: {e}")
+        return web.json_response({"error": str(e)}, status=500)
+
 async def index_handler(request):
     """Serves the main dashboard.html file."""
     return web.FileResponse('./src/templates/dashboard.html')
@@ -239,6 +258,7 @@ def setup_app():
     app.router.add_get('/api/frame', get_frame_handler)
     app.router.add_get('/api/zones', get_zones_handler)
     app.router.add_post('/api/zones', save_zones_handler)
+    app.router.add_get('/api/input-files', list_input_files_handler)
 
     # API routes for detection process control
     app.router.add_get('/api/detection/status', get_detection_status_handler)
@@ -253,12 +273,23 @@ def setup_app():
         
     app.router.add_static('/output', path=output_dir, name='output')
     print(f"Serving static files from: {output_dir}")
+
+    # Serve a general 'static' directory for assets like audio and icons
+    static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'static'))
+    if not os.path.exists(static_dir):
+        os.makedirs(static_dir)
+        print(f"Created static directory: {static_dir}")
+    app.router.add_static('/static', path=static_dir, name='static')
+    print(f"Serving static files from: {static_dir}")
     
     return app
 
 if __name__ == '__main__':
     app = setup_app()
-    start_detection_process() # Initial start
+    # start_detection_process() # Optionally start detection on server launch
     print("Starting server on http://localhost:8080")
     print("View dashboard at http://localhost:8080")
+
+    webbrowser.open_new_tab('http://localhost:8080')
+
     web.run_app(app, host='0.0.0.0', port=8080)

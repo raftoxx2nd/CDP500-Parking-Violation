@@ -237,7 +237,7 @@ def run_violation_detection():
             # 7. Run Model Tracking
             results = model.track(frame, persist=True, tracker="bytetrack.yaml", verbose=False, 
                                   device=DEVICE, conf=CONF_THRESHOLD, iou=IOU_THRESHOLD, 
-                                  classes=[2, 3])[0] # car, motorcycle
+                                  classes=[2, 3])[0] # 2 car, 3 motorcycle, 0 is motorcycle in custom model
 
             if results.boxes.id is not None:
                 boxes = results.boxes.xyxy.cpu().numpy()
