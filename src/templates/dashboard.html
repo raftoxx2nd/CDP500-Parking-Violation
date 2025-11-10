@@ -18,31 +18,48 @@
         <header class="flex justify-between items-center mb-6">
             <h1 class="text-3xl font-bold text-white">Parking Violation Dashboard</h1>
             <div class="flex items-center space-x-4">
-                <!-- Connection Status -->
-                <div class="flex items-center space-x-2">
-                    <div class="relative flex items-center">
-                        <div id="status-dot" class="w-3 h-3 rounded-full bg-red-500"></div>
-                        <div id="status-ping" class="absolute w-3 h-3 rounded-full bg-red-400 animate-ping"></div>
+                <!-- Consolidated Status & Control Component -->
+                <div class="flex items-center space-x-3 bg-gray-800 px-4 py-2 rounded-lg border border-gray-700">
+                    <!-- Server Connection Status -->
+                    <div class="flex items-center space-x-2">
+                        <div class="relative flex items-center" title="Server connection status">
+                            <div id="status-dot" class="w-2 h-2 rounded-full bg-red-500"></div>
+                            <div id="status-ping" class="absolute w-2 h-2 rounded-full bg-red-400 animate-ping"></div>
+                        </div>
+                        <span id="status-text" class="text-xs font-medium text-gray-400">Server</span>
                     </div>
-                    <span id="status-text" class="text-sm font-medium text-gray-300">Disconnected</span>
-                </div>
-                <!-- Detector Status -->
-                <div id="detector-status-indicator" class="flex items-center space-x-2 p-2 rounded-lg">
-                    <div id="detector-status-dot" class="w-3 h-3 rounded-full bg-gray-500"></div>
-                    <span id="detector-status-text" class="text-sm font-medium text-gray-300">Unknown</span>
+
+                    <!-- Separator -->
+                    <div class="h-5 border-l border-gray-600"></div>
+
+                    <!-- Detector Status & Control -->
+                    <div class="flex items-center space-x-2">
+                        <div id="detector-status-dot" class="w-2 h-2 rounded-full bg-gray-500" title="Detector status"></div>
+                        <span id="detector-status-text" class="text-xs font-medium text-gray-300">Detector</span>
+                    </div>
+
+                    <!-- Play/Stop Toggle Button -->
+                    <button id="detector-toggle-btn" class="ml-2 bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-3 rounded transition-colors text-sm flex items-center space-x-1" title="Toggle detector on/off">
+                        <svg id="play-icon" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                        </svg>
+                        <svg id="stop-icon" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 hidden" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M4 2a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V4a2 2 0 00-2-2H4zm0 2h12v12H4V4z" clip-rule="evenodd" />
+                        </svg>
+                        <span id="toggle-text">Start</span>
+                    </button>
                 </div>
 
-                <button id="start-detection-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors hidden">Mulai Deteksi</button>
-                <button id="stop-detection-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors hidden">Stop Deteksi</button>
-
-                <button id="enable-notifications-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center space-x-2">
+                <!-- Alerts Button -->
+                <button id="enable-notifications-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center space-x-2" title="Enable desktop notifications">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path d="M10 2a6 6 0 00-6 6v3.586l-1.707 1.707A1 1 0 003 14h14a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
                     </svg>
-                    <span>Enable Alerts</span>
+                    <span>Notifikasi</span>
                 </button>
 
-                <button id="settings-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center space-x-2">
+                <!-- Settings Button -->
+                <button id="settings-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center space-x-2" title="Open settings">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0L8.12 5.02A6.996 6.996 0 004.98 8.12l-1.85.39c-1.56.38-1.56 2.6 0 2.98l1.85.39A6.996 6.996 0 008.12 15.02l.39 1.85c.38 1.56 2.6 1.56 2.98 0l.39-1.85a6.996 6.996 0 003.14-3.14l1.85-.39c1.56-.38 1.56-2.6 0-2.98l-1.85-.39a6.996 6.996 0 00-3.14-3.14l-.39-1.85zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
                     </svg>
@@ -71,7 +88,7 @@
         </div>
     </div>
 
-    <!-- NEW: Audio element for alert sound -->
+    <!-- Audio element for alert sound -->
     <audio id="alert-sound" src="/static/audio/alert.mp3" preload="auto"></audio>
 
     <!-- Settings Modal -->
@@ -109,7 +126,7 @@
                     
                     <!-- Manual Input Help -->
                     <div class="mt-4 p-3 bg-blue-900/30 border border-blue-700 rounded-lg">
-                        <p class="text-xs text-gray-300">💡 <strong>Tip:</strong> You can also type a full path (e.g., <code class="bg-gray-800 px-1 rounded">E:\Videos\parking.mp4</code>) or RTSP URL directly above.</p>
+                        <p class="text-xs text-gray-300"><strong>Tip:</strong> You can also type a full path (e.g., <code class="bg-gray-800 px-1 rounded">E:\Videos\parking.mp4</code>) or RTSP URL directly above.</p>
                     </div>
                     
                     <button id="save-settings-btn" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Apply Source & Update Editor</button>
@@ -134,483 +151,11 @@
         </div>
     </div>
 
-    <script>
-        // --- Existing Selectors ---
-        const violationsLog = document.getElementById('violations-log');
-        const snapshotContainer = document.getElementById('snapshot-container');
-        const logPlaceholder = document.getElementById('log-placeholder');
-        const statusDot = document.getElementById('status-dot');
-        const statusPing = document.getElementById('status-ping');
-        const statusText = document.getElementById('status-text');
-
-        // --- Detector Status Selectors ---
-        const detectorStatusIndicator = document.getElementById('detector-status-indicator');
-        const detectorStatusDot = document.getElementById('detector-status-dot');
-        const detectorStatusText = document.getElementById('detector-status-text');
-        const startDetectionBtn = document.getElementById('start-detection-btn');
-        const stopDetectionBtn = document.getElementById('stop-detection-btn');
-
-        // --- Alert & Notification Selectors ---
-        const alertSound = document.getElementById('alert-sound');
-        const enableNotificationsBtn = document.getElementById('enable-notifications-btn');
-
-        // --- New Settings Modal Selectors ---
-        const settingsBtn = document.getElementById('settings-btn');
-        const settingsModal = document.getElementById('settings-modal');
-        const closeModalBtn = document.getElementById('close-modal-btn');
-        const tabBtns = document.querySelectorAll('.tab-btn');
-        const tabContents = document.querySelectorAll('.tab-content');
-        
-        // Video Source Tab
-        const videoSourceInput = document.getElementById('video-source-input');
-        const saveSettingsBtn = document.getElementById('save-settings-btn');
-        const settingsFeedback = document.getElementById('settings-feedback');
-        const unsavedIndicator = document.getElementById('unsaved-indicator');
-        const fileBrowserDropdown = document.getElementById('file-browser-dropdown');
-
-        // Zone Editor Tab
-        const roiBgImage = document.getElementById('roi-bg-image');
-        const roiCanvas = document.getElementById('roi-canvas');
-        const canvasContainer = document.getElementById('canvas-container');
-        const finishZoneBtn = document.getElementById('finish-zone-btn');
-        const clearZonesBtn = document.getElementById('clear-zones-btn');
-        const saveZonesBtn = document.getElementById('save-zones-btn');
-        const zonesFeedback = document.getElementById('zones-feedback');
-        let roiCtx = null;
-
-        // --- State Management ---
-        const violationDataStore = {};
-        let zones = {};
-        let currentPoints = [];
-        let sourceImageSize = { w: 0, h: 0 };
-        let hasUnsavedChanges = false;
-        let canPlaySound = true; // Cooldown flag for alert sound
-
-        // --- Alert & Notification Logic ---
-        function requestNotificationPermission() {
-            if (!("Notification" in window)) {
-                alert("This browser does not support desktop notification");
-                return;
-            }
-
-            if (Notification.permission === "granted") {
-                // Notifications are already enabled
-                new Notification("Alerts Enabled!", { body: "You will now receive push notifications for new violations." });
-            } else if (Notification.permission !== "denied") {
-                Notification.requestPermission().then(permission => {
-                    if (permission === "granted") {
-                        new Notification("Alerts Enabled!", { body: "You will now receive push notifications for new violations." });
-                    }
-                });
-            }
-        }
-
-        function triggerAlert(violationData) {
-            // 1. Play sound with cooldown
-            if (canPlaySound) {
-                alertSound.play().catch(e => console.error("Audio play failed. User interaction might be required first.", e));
-                canPlaySound = false;
-                // Set a 30-second cooldown
-                setTimeout(() => { canPlaySound = true; }, 30000);
-            }
-
-            // 2. Send push notification if permission is granted and tab is not active
-            if (Notification.permission === "granted" && document.hidden) {
-                const notificationBody = `Vehicle ID ${violationData.track_id} detected in zone '${violationData.zone_name}'.`;
-                new Notification("Parking Violation Detected!", {
-                    body: notificationBody,
-                    icon: "/static/icon.png" // Optional: path to your icon
-                });
-            }
-        }
-
-        enableNotificationsBtn.addEventListener('click', requestNotificationPermission);
-
-        // --- Detector Control Logic ---
-        function updateDetectorStatusUI(status) {
-            if (status.status === 'running') {
-                detectorStatusText.textContent = `Running (PID: ${status.pid})`;
-                detectorStatusDot.classList.remove('bg-gray-500', 'bg-red-500');
-                detectorStatusDot.classList.add('bg-green-500');
-                detectorStatusIndicator.classList.remove('bg-gray-800');
-                detectorStatusIndicator.classList.add('bg-green-900/50');
-                startDetectionBtn.classList.add('hidden');
-                stopDetectionBtn.classList.remove('hidden');
-            } else {
-                detectorStatusText.textContent = 'Stopped';
-                detectorStatusDot.classList.remove('bg-gray-500', 'bg-green-500');
-                detectorStatusDot.classList.add('bg-red-500');
-                detectorStatusIndicator.classList.remove('bg-green-900/50');
-                detectorStatusIndicator.classList.add('bg-gray-800');
-                startDetectionBtn.classList.remove('hidden');
-                stopDetectionBtn.classList.add('hidden');
-            }
-        }
-
-        async function getDetectorStatus() {
-            try {
-                const response = await fetch('/api/detection/status');
-                if (!response.ok) throw new Error('Failed to fetch status');
-                const status = await response.json();
-                updateDetectorStatusUI(status);
-            } catch (e) {
-                console.error("Error getting detector status:", e);
-                detectorStatusText.textContent = 'Error';
-                detectorStatusDot.classList.remove('bg-green-500', 'bg-red-500');
-                detectorStatusDot.classList.add('bg-yellow-500');
-            }
-        }
-
-        startDetectionBtn.addEventListener('click', async () => {
-            try {
-                const response = await fetch('/api/detection/start', { method: 'POST' });
-                const status = await response.json();
-                updateDetectorStatusUI(status);
-            } catch (e) { console.error("Error starting detection:", e); }
-        });
-
-        stopDetectionBtn.addEventListener('click', async () => {
-            try {
-                const response = await fetch('/api/detection/stop', { method: 'POST' });
-                const status = await response.json();
-                updateDetectorStatusUI(status);
-            } catch (e) { console.error("Error stopping detection:", e); }
-        });
-
-
-        // --- WebSocket and Dashboard Logic (Existing) ---
-        function getSnapshotUrl(relativePath) { return `/${relativePath}`; }
-        let reconnectDelay = 3000;
-        const maxReconnectDelay = 60000;
-
-        function connect() {
-            const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-            const wsHost = window.location.host;
-            const ws = new WebSocket(`${wsProtocol}//${wsHost}/ws`);
-
-            ws.onopen = () => {
-                console.log('WebSocket connected');
-                statusText.textContent = 'Connected';
-                statusDot.classList.remove('bg-red-500');
-                statusDot.classList.add('bg-green-500');
-                statusPing.classList.remove('bg-red-400');
-                statusPing.classList.add('bg-green-400');
-                reconnectDelay = 3000;
-            };
-
-            ws.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    violationDataStore[data.track_id] = data;
-                    if (logPlaceholder) logPlaceholder.remove();
-                    
-                    // --- MODIFIED: Trigger alert on new violation ---
-                    triggerAlert(data);
-
-                    const imageUrl = `${getSnapshotUrl(data.snapshot_file)}?t=${new Date().getTime()}`;
-                    snapshotContainer.innerHTML = `<img src="${imageUrl}" alt="Violation snapshot for ID ${data.track_id}" class="rounded-lg max-w-full h-auto shadow-md">`;
-
-                    const logEntry = document.createElement('div');
-                    logEntry.className = 'bg-gray-700 p-4 rounded-lg border border-gray-600 transition-all duration-300 transform scale-95 opacity-0 cursor-pointer hover:bg-gray-600';
-                    logEntry.dataset.trackId = data.track_id;
-                    logEntry.innerHTML = `
-                        <p class="font-semibold text-red-400">New Violation: ID ${data.track_id}</p>
-                        <p class="text-sm text-gray-300">Zone: <span class="font-medium text-white">${data.zone_name}</span></p>
-                        <p class="text-sm text-gray-300">Class: <span class="font-medium text-white">${data.class_label}</span></p>
-                        <p class="text-sm text-gray-300">Time: <span class="font-medium text-white">${data.timestamp}</span></p>
-                    `;
-                    violationsLog.prepend(logEntry);
-                    setTimeout(() => logEntry.classList.remove('scale-95', 'opacity-0'), 10);
-                } catch (e) { console.error('Failed to parse message:', event.data, e); }
-            };
-
-            ws.onclose = (e) => {
-                console.log(`WebSocket disconnected. Reconnecting in ${reconnectDelay / 1000}s...`);
-                statusText.textContent = 'Disconnected';
-                statusDot.classList.add('bg-red-500');
-                statusDot.classList.remove('bg-green-500');
-                statusPing.classList.add('bg-red-400');
-                statusPing.classList.remove('bg-green-400');
-                setTimeout(connect, reconnectDelay);
-                reconnectDelay = Math.min(reconnectDelay * 2, maxReconnectDelay);
-            };
-
-            ws.onerror = (err) => { console.error('WebSocket error:', err); ws.close(); };
-        }
-        connect();
-        
-        // Initial and periodic status checks
-        getDetectorStatus();
-        setInterval(getDetectorStatus, 5000); // Check every 5 seconds
-
-        violationsLog.addEventListener('click', (event) => {
-            const logEntry = event.target.closest('[data-track-id]');
-            if (logEntry) {
-                // Remove highlight from any previously selected item
-                const currentlySelected = violationsLog.querySelector('.selected-log');
-                if (currentlySelected) {
-                    currentlySelected.classList.remove('selected-log', 'bg-blue-900/50', 'border-blue-400');
-                    currentlySelected.classList.add('hover:bg-gray-600');
-                }
-
-                // Add highlight to the clicked item
-                logEntry.classList.add('selected-log', 'bg-blue-900/50', 'border-blue-400');
-                logEntry.classList.remove('hover:bg-gray-600');
-
-                const trackId = logEntry.dataset.trackId;
-                const violationData = violationDataStore[trackId];
-                if (violationData) {
-                    const imageUrl = `${getSnapshotUrl(violationData.snapshot_file)}?t=${new Date().getTime()}`;
-                    snapshotContainer.innerHTML = `<img src="${imageUrl}" alt="Violation snapshot for ID ${violationData.track_id}" class="rounded-lg max-w-full h-auto shadow-md">`;
-                }
-            }
-        });
-
-        // --- Settings Modal Logic ---
-        function openModal() { settingsModal.classList.remove('hidden'); settingsModal.classList.add('flex'); }
-        function closeModal() { settingsModal.classList.add('hidden'); settingsModal.classList.remove('flex'); }
-
-        settingsBtn.addEventListener('click', () => {
-            openModal();
-            loadCurrentSettings();
-            loadInputFiles();
-            loadZoneEditor();
-        });
-        closeModalBtn.addEventListener('click', closeModal);
-
-        tabBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                tabBtns.forEach(b => b.classList.remove('bg-gray-700'));
-                btn.classList.add('bg-gray-700');
-                tabContents.forEach(c => c.classList.add('hidden'));
-                document.getElementById(`${btn.dataset.tab}-tab`).classList.remove('hidden');
-            });
-        });
-
-        // --- Video Source Logic ---
-        async function loadCurrentSettings() {
-            try {
-                const response = await fetch('/api/settings');
-                const data = await response.json();
-                if (data.video_source) {
-                    videoSourceInput.value = data.video_source;
-                }
-                hasUnsavedChanges = false;
-                updateUnsavedIndicator();
-            } catch (e) { console.error("Failed to load settings:", e); }
-        }
-
-        videoSourceInput.addEventListener('input', () => {
-            hasUnsavedChanges = true;
-            updateUnsavedIndicator();
-        });
-
-        // --- File Browser Dropdown Logic ---
-        async function loadInputFiles() {
-            try {
-                const response = await fetch('/api/input-files');
-                const data = await response.json();
-                
-                fileBrowserDropdown.innerHTML = '<option value="">-- Select a video --</option>';
-                if (data.files && data.files.length > 0) {
-                    data.files.forEach(file => {
-                        const option = document.createElement('option');
-                        option.value = `input/${file}`;
-                        option.textContent = file;
-                        fileBrowserDropdown.appendChild(option);
-                    });
-                } else {
-                    const option = document.createElement('option');
-                    option.textContent = 'No video files found in input/ directory';
-                    option.disabled = true;
-                    fileBrowserDropdown.appendChild(option);
-                }
-            } catch (e) {
-                console.error("Failed to load input files:", e);
-                fileBrowserDropdown.innerHTML = '<option value="">-- Error loading files --</option>';
-            }
-        }
-
-        // When dropdown selection changes, populate the input field
-        fileBrowserDropdown.addEventListener('change', (e) => {
-            if (e.target.value) {
-                videoSourceInput.value = e.target.value;
-                hasUnsavedChanges = true;
-                updateUnsavedIndicator();
-                settingsFeedback.textContent = `✓ Selected: ${e.target.options[e.target.selectedIndex].text}. Click "Apply Source & Update Editor" to apply.`;
-                setTimeout(() => settingsFeedback.textContent = '', 3000);
-            }
-        });
-
-        function updateUnsavedIndicator() {
-            if (hasUnsavedChanges) {
-                unsavedIndicator.classList.remove('hidden');
-            } else {
-                unsavedIndicator.classList.add('hidden');
-            }
-        }
-
-        saveSettingsBtn.addEventListener('click', async () => {
-            try {
-                const response = await fetch('/api/settings', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ video_source: videoSourceInput.value })
-                });
-                const result = await response.json();
-                settingsFeedback.textContent = result.message || result.error;
-                hasUnsavedChanges = false;
-                updateUnsavedIndicator();
-
-                // Automatically switch to the zone editor tab and refresh it
-                if (response.ok) {
-                    document.querySelector('.tab-btn[data-tab="zones"]').click();
-                    loadZoneEditor();
-                }
-
-                setTimeout(() => settingsFeedback.textContent = '', 3000);
-            } catch (e) { console.error("Failed to save settings:", e); }
-        });
-
-        // --- Zone Editor Logic ---
-        async function loadZoneEditor() {
-            // 1. Fetch and set background image
-            roiBgImage.src = `/api/frame?t=${new Date().getTime()}`;
-            roiBgImage.onload = () => {
-                // 2. Set canvas dimensions to match image
-                sourceImageSize = { w: roiBgImage.naturalWidth, h: roiBgImage.naturalHeight };
-                roiCanvas.width = roiBgImage.naturalWidth;
-                roiCanvas.height = roiBgImage.naturalHeight;
-                roiCtx = roiCanvas.getContext('2d');
-                
-                // 3. Fetch existing zones and draw them
-                loadAndDrawZones();
-            };
-            roiBgImage.onerror = () => {
-                zonesFeedback.textContent = "Failed to load frame. Is the video source correct?";
-            }
-        }
-
-        async function loadAndDrawZones() {
-            try {
-                const response = await fetch('/api/zones');
-                const data = await response.json();
-                zones = data.zones || {};
-                drawAll();
-            } catch (e) { console.error("Failed to load zones:", e); zones = {}; }
-        }
-
-        function drawAll() {
-            if (!roiCtx) return;
-            roiCtx.clearRect(0, 0, roiCanvas.width, roiCanvas.height);
-            // Draw existing saved zones
-            Object.entries(zones).forEach(([name, points]) => {
-                drawPolygon(points, 'rgba(255, 0, 0, 0.5)', 'red');
-                // Draw text with a background for readability
-                const text = name;
-                const fontSize = 16;
-                roiCtx.font = `${fontSize}px Arial`;
-                const textWidth = roiCtx.measureText(text).width;
-                const textX = points[0][0];
-                const textY = points[0][1] - 15;
-                roiCtx.fillStyle = 'rgba(0,0,0,0.7)';
-                roiCtx.fillRect(textX - 4, textY - fontSize, textWidth + 8, fontSize + 6);
-                roiCtx.fillStyle = 'white';
-                roiCtx.fillText(text, textX, textY);
-            });
-            // Draw current unsaved polygon
-            if (currentPoints.length > 0) {
-                drawPolygon(currentPoints, 'rgba(0, 255, 0, 0.5)', 'lime');
-            }
-            // NEW: Draw a dot for the very first point
-            if (currentPoints.length === 1) {
-                const point = currentPoints[0];
-                roiCtx.fillStyle = 'lime';
-                roiCtx.beginPath();
-                roiCtx.arc(point[0], point[1], 5, 0, 2 * Math.PI);
-                roiCtx.fill();
-            }
-            updateSaveZonesBtnState();
-        }
-
-        function drawPolygon(points, fillStyle, strokeStyle) {
-            if (points.length === 0) return;
-            roiCtx.fillStyle = fillStyle;
-            roiCtx.strokeStyle = strokeStyle;
-            roiCtx.lineWidth = 2;
-            roiCtx.beginPath();
-            roiCtx.moveTo(points[0][0], points[0][1]);
-            for (let i = 1; i < points.length; i++) {
-                roiCtx.lineTo(points[i][0], points[i][1]);
-            }
-            if (points.length > 2) roiCtx.closePath();
-            roiCtx.fill();
-            roiCtx.stroke();
-        }
-
-        roiCanvas.addEventListener('mousedown', (e) => {
-            const rect = roiCanvas.getBoundingClientRect();
-            const scaleX = roiCanvas.width / rect.width;
-            const scaleY = roiCanvas.height / rect.height;
-            const x = (e.clientX - rect.left) * scaleX;
-            const y = (e.clientY - rect.top) * scaleY;
-            currentPoints.push([Math.round(x), Math.round(y)]);
-            drawAll();
-        });
-
-        finishZoneBtn.addEventListener('click', () => {
-            if (currentPoints.length > 2) {
-                let zoneName = prompt("Enter a name for this zone:", `zone_${Object.keys(zones).length + 1}`);
-                if (zoneName && zoneName.trim().length > 0) {
-                    zones[zoneName.trim()] = currentPoints;
-                    currentPoints = [];
-                    drawAll();
-                } else {
-                    alert("Zone name cannot be empty.");
-                }
-            } else {
-                alert("A zone must have at least 3 points.");
-            }
-        });
-
-        clearZonesBtn.addEventListener('click', () => {
-            if (confirm("Are you sure you want to clear all zones? This cannot be undone.")) {
-                zones = {};
-                currentPoints = [];
-                drawAll();
-            }
-        });
-
-        function updateSaveZonesBtnState() {
-            if (currentPoints.length > 0) {
-                saveZonesBtn.disabled = true;
-                saveZonesBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                saveZonesBtn.title = "Finish the current zone before saving.";
-            } else {
-                saveZonesBtn.disabled = false;
-                saveZonesBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                saveZonesBtn.title = "";
-            }
-        }
-
-        saveZonesBtn.addEventListener('click', async () => {
-            if (saveZonesBtn.disabled) return;
-            try {
-                const payload = {
-                    source_image_width: sourceImageSize.w,
-                    source_image_height: sourceImageSize.h,
-                    zones: zones
-                };
-                const response = await fetch('/api/zones', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const result = await response.json();
-                zonesFeedback.textContent = result.message || result.error;
-                setTimeout(() => zonesFeedback.textContent = '', 3000);
-            } catch (e) { console.error("Failed to save zones:", e); }
-        });
-    </script>
+    <!-- Load JavaScript Modules -->
+    <script src="/static/js/notifications.js"></script>
+    <script src="/static/js/detector.js"></script>
+    <script src="/static/js/websocket.js"></script>
+    <script src="/static/js/settings.js"></script>
+    <script src="/static/js/app.js"></script>
 </body>
 </html>
