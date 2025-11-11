@@ -314,24 +314,29 @@ def run_violation_detection():
                                 
                                 # Send to dashboard
                                 threading.Thread(target=send_to_dashboard, args=(log_data,), daemon=True).start()
-                    else:
-                        # Reset timer if vehicle leaves the zone
-                        zone_timers.pop(track_id, None)
+                    # TODO: else clause to handle vehicles outside zones but it is also handled below using grace period
+                    # but I'm not sure if bounding box that dissapear in the violating zone and bounding box
+                    # that appear and left the violating zone are somehow the same or no, and I don't what im doing.
 
                     # Draw bounding box and ID on the frame
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2) 
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
                     text = f"ID: {int(track_id)} ({conf:.2f})"
                     cv2.putText(frame, text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
 
                 # Prune timers for tracks that have been gone for the grace period
                 current_time = time.time()
                 for track_id in list(zone_timers.keys()):
-                    # A track is considered "gone" if it hasn't been seen in the grace period
+                    # A track is considered "gone" if it hasn't been seen *inside a zone* for the grace period.
+                    # The 'last_seen' timestamp is only updated when a vehicle is in a zone.
                     if current_time - zone_timers[track_id]["last_seen"] > TRACK_GRACE_PERIOD_SECONDS:
-                        print(f"Vehicle ID {track_id} left the scene. Reset.")
-                        # Use .pop(track_id, None) for safe removal
+                        # If the vehicle that disappeared was a violator, log it and send event.
+                        if track_id in violation_history:
+                            print(f"CLEARED: Violating Vehicle ID {track_id} left the area or disappeared.")
+                            # TODO: Send "violation_cleared" event to dashboard
+                            violation_history.pop(track_id, None)
+
+                        # Always remove from timers if it's gone.
                         zone_timers.pop(track_id, None)
-                        violation_history.pop(track_id, None)
 
             # Draw the defined zones on the frame
             for name, poly in scaled_zones.items():
