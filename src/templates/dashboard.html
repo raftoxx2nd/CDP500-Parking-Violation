@@ -72,7 +72,28 @@
             
             <!-- Column 1: Current Violation Snapshot -->
             <div class="lg:col-span-2 bg-gray-800 p-6 rounded-lg shadow-xl">
-                <h2 class="text-xl font-semibold mb-4 text-white">Current Violation</h2>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-white">Current Violation</h2>
+                    <!-- Violation Info Badge -->
+                    <div id="violation-info" class="hidden bg-gray-700 px-4 py-2 rounded-lg border border-gray-600">
+                        <div class="flex items-center space-x-4 text-sm">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-gray-400">ID:</span>
+                                <span id="current-violation-id" class="font-semibold text-red-400">-</span>
+                            </div>
+                            <div class="h-4 border-l border-gray-600"></div>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-gray-400">Zone:</span>
+                                <span id="current-violation-zone" class="font-semibold text-white">-</span>
+                            </div>
+                            <div class="h-4 border-l border-gray-600"></div>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-gray-400">Time:</span>
+                                <span id="current-violation-time" class="font-medium text-gray-300">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div id="snapshot-container" class="bg-gray-700 rounded-lg min-h-[480px] flex items-center justify-center border-2 border-gray-600">
                     <p class="text-gray-400">Waiting for first violation...</p>
                 </div>

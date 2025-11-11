@@ -9,6 +9,10 @@ const WebSocketHandler = (function() {
     let statusDot = null;
     let statusPing = null;
     let statusText = null;
+    let violationInfo = null;
+    let currentViolationId = null;
+    let currentViolationZone = null;
+    let currentViolationTime = null;
     let ws = null;
     let reconnectDelay = 3000;
     const maxReconnectDelay = 60000;
@@ -45,6 +49,19 @@ const WebSocketHandler = (function() {
     }
 
     /**
+     * Update violation info display
+     * @param {Object} data - Violation data
+     */
+    function updateViolationInfo(data) {
+        if (violationInfo && currentViolationId && currentViolationZone && currentViolationTime) {
+            violationInfo.classList.remove('hidden');
+            currentViolationId.textContent = data.track_id;
+            currentViolationZone.textContent = data.zone_name;
+            currentViolationTime.textContent = data.timestamp;
+        }
+    }
+
+    /**
      * Handle new violation data
      * @param {Object} data - Violation data from server
      */
@@ -65,6 +82,9 @@ const WebSocketHandler = (function() {
         // Update main snapshot view
         const imageUrl = `${getSnapshotUrl(data.snapshot_file)}?t=${new Date().getTime()}`;
         snapshotContainer.innerHTML = `<img src="${imageUrl}" alt="Violation snapshot for ID ${data.track_id}" class="rounded-lg max-w-full h-auto shadow-md">`;
+
+        // Update violation info display
+        updateViolationInfo(data);
 
         // Add to violation log
         const logEntry = document.createElement('div');
@@ -107,6 +127,9 @@ const WebSocketHandler = (function() {
         if (violationData) {
             const imageUrl = `${getSnapshotUrl(violationData.snapshot_file)}?t=${new Date().getTime()}`;
             snapshotContainer.innerHTML = `<img src="${imageUrl}" alt="Violation snapshot for ID ${violationData.track_id}" class="rounded-lg max-w-full h-auto shadow-md">`;
+            
+            // Update violation info display
+            updateViolationInfo(violationData);
         }
     }
 
@@ -156,6 +179,10 @@ const WebSocketHandler = (function() {
         statusDot = document.getElementById('status-dot');
         statusPing = document.getElementById('status-ping');
         statusText = document.getElementById('status-text');
+        violationInfo = document.getElementById('violation-info');
+        currentViolationId = document.getElementById('current-violation-id');
+        currentViolationZone = document.getElementById('current-violation-zone');
+        currentViolationTime = document.getElementById('current-violation-time');
 
         // Attach event listener for log clicks
         if (violationsLog) {
