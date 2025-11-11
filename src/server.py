@@ -30,12 +30,19 @@ ZONES_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'conf
 def update_detection_status():
     """Checks the subprocess and updates the global status dictionary."""
     global detection_process, DETECTION_STATUS
+    
+    # Store the old status to check for changes
+    old_status = DETECTION_STATUS["status"]
+
     if detection_process and detection_process.poll() is None:
         DETECTION_STATUS = {"status": "running", "pid": detection_process.pid}
     else:
         DETECTION_STATUS = {"status": "stopped", "pid": None}
-    print(f"Updated detection status: {DETECTION_STATUS}")
-
+    
+    # Only print if the status has actually changed
+    if old_status != DETECTION_STATUS["status"]:
+        print(f"Detection status changed: {DETECTION_STATUS}")
+        
 def stop_detection_process():
     """Stops the running detection process."""
     global detection_process
@@ -44,9 +51,9 @@ def stop_detection_process():
         detection_process.terminate()
         try:
             detection_process.wait(timeout=5)
-            print("Detection process stopped gracefully.")
+            print("Detection process stopped.")
         except subprocess.TimeoutExpired:
-            print("Warning: Detection process did not terminate gracefully. Forcing kill.")
+            print("Warning: Detection process did not terminate on purpose. Forcing kill.")
             detection_process.kill()
         detection_process = None
     else:
