@@ -109,8 +109,6 @@ class VideoStream:
         self.cap.release()
         print("Video stream thread stopped.")
 
-### --- START OF MISSING FUNCTIONS --- ###
-
 # --- Utility Functions ---
 
 def load_settings(filepath=SETTINGS_FILE):
@@ -154,8 +152,6 @@ def send_to_dashboard(log_data):
         print(f"Error: Could not connect to dashboard server at {DASHBOARD_URL}.")
     except Exception as e:
         print(f"Error sending to dashboard: {e}")
-
-### --- END OF MISSING FUNCTIONS --- ###
 
 
 # --- Core Processing ---
@@ -316,7 +312,7 @@ def run_violation_detection():
                                 threading.Thread(target=send_to_dashboard, args=(log_data,), daemon=True).start()
                     # TODO: else clause to handle vehicles outside zones but it is also handled below using grace period
                     # but I'm not sure if bounding box that dissapear in the violating zone and bounding box
-                    # that appear and left the violating zone are somehow the same or no, and I don't what im doing.
+                    # that appear and left the violating zone are somehow the same or no, and I don't know what im doing.
 
                     # Draw bounding box and ID on the frame
                     cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)

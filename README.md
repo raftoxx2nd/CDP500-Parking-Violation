@@ -2,7 +2,7 @@
 
 This project is a real-time parking violation detection system that uses YOLO object detection to identify vehicles in restricted zones. It features a comprehensive web-based dashboard for live monitoring, configuration, and alert management.
 
-![Dashboard Screenshot](https://i.imgur.com/your-screenshot.png) <!-- It's recommended to replace this with an actual screenshot -->
+![Dashboard Screenshot](https://i.imgur.com/screenshot.png) 
 
 ## Features
 

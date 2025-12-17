@@ -165,8 +165,6 @@ async def set_settings_handler(request):
             json.dump(new_settings, f, indent=4)
         
         print(f"Settings updated. Source set to: {new_settings.get('video_source')}")
-        # NOTE: The detection process is NO LONGER restarted here.
-        # It is restarted when zones are saved.
         
         return web.json_response({"status": "success", "message": "Settings updated. Go to Zone Editor to apply."})
     except Exception as e:
@@ -182,9 +180,6 @@ async def get_frame_handler(request):
         if not video_source:
             return web.Response(text="Video source not configured.", status=400)
 
-        # --- FIX ---
-        # The get_frame_from_source function expects a capture object, not a path.
-        # We must open the capture, read one frame, and release it.
         from src.capture.stream_handler import get_video_capture
         cap = get_video_capture(video_source)
         if not cap.isOpened():
@@ -192,7 +187,6 @@ async def get_frame_handler(request):
         
         ret, frame = cap.read()
         cap.release()
-        # --- END FIX ---
 
         if not ret or frame is None:
             return web.Response(text="Failed to capture frame from source.", status=500)

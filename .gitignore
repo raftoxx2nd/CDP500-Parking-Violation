@@ -47,4 +47,6 @@ unused/*
 
 
 *.ipynb
+.github/
 MODULARIZATION_SUMMARY.md
+project_plan.md
